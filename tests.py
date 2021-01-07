@@ -2,24 +2,33 @@ from copy import deepcopy
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY
 
+from pony.orm import db_session, rollback
 from vk_api.bot_longpoll import VkBotMessageEvent
 
 import settings
 from bot import Bot
 
 
+def isolate_db(test_func):
+    def wrapper(*args, **kwargs):
+        with db_session:
+            test_func(*args, **kwargs)
+            rollback()
+    return wrapper
+
+
 class Test1(TestCase):
     RAW_EVENT = {
-    'type': 'message_new',
-    'object':{'date': 1606858606, 'from_id': 316145354, 'id': 81, 'out': 0,'peer_id': 316145354,
-              'text': '434', 'conversation_message_id': 81, 'fwd_messages': [], 'important': False,
-              'random_id': 0, 'attachments': [], 'is_hidden': False},
-    'group_id': 200376123, 'event_id': '34de51a787a5440e6ae5173bdbffdbed19a1b511'}
+        'type': 'message_new',
+        'object': {'date': 1606858606, 'from_id': 316145354, 'id': 81, 'out': 0, 'peer_id': 316145354,
+                   'text': '434', 'conversation_message_id': 81, 'fwd_messages': [], 'important': False,
+                   'random_id': 0, 'attachments': [], 'is_hidden': False},
+        'group_id': 200376123, 'event_id': '34de51a787a5440e6ae5173bdbffdbed19a1b511'}
 
     def test_run(self):
         count = 5
         obj = {}
-        events = [obj] * count   # [obj, obj, ...]
+        events = [obj] * count  # [obj, obj, ...]
         long_poller_mock = Mock(return_value=events)
         long_poller_listen_mock = Mock()
         long_poller_listen_mock.listen = long_poller_mock
@@ -52,6 +61,7 @@ class Test1(TestCase):
         settings.SCENARIOS["registration"]["steps"]["step3"]["text"].format(name='Вениамин', email='email@email.ru')
     ]
 
+    @isolate_db
     def test_run_ok(self):
         send_mock = Mock()
         api_mock = Mock()
