@@ -7,6 +7,7 @@ from vk_api.bot_longpoll import VkBotMessageEvent
 
 import settings
 from bot import Bot
+from generate_ticket import generate_ticket
 
 
 def isolate_db(test_func):
@@ -36,6 +37,7 @@ class Test1(TestCase):
             with patch('bot.VkBotLongPoll', return_value=long_poller_listen_mock):
                 bot = Bot('', '')
                 bot.on_event = Mock()
+                bot.send_image = Mock()
                 bot.run()
 
                 bot.on_event.assert_called()
@@ -79,6 +81,7 @@ class Test1(TestCase):
         with patch('bot.VkBotLongPoll', return_value=long_poller_mock):
             bot = Bot('', '')
             bot.api = api_mock
+            bot.send_image = Mock()
             bot.run()
 
         assert send_mock.call_count == len(self.INPUTS)
@@ -88,3 +91,13 @@ class Test1(TestCase):
             args, kwargs = call
             real_outputs.append(kwargs['message'])
         assert real_outputs == self.EXPECTED_OUTPUTS
+
+    def test_image_generation(self):
+        ticket_file = generate_ticket('Anton', '123@123.com')
+
+        with open('files/ticket-example.png', 'rb') as expected_file:
+            expected_bytes = expected_file.read()
+
+        assert ticket_file.read() == expected_bytes
+
+
